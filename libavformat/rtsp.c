@@ -93,6 +93,7 @@ const AVOption ff_rtsp_options[] = {
     RTSP_MEDIATYPE_OPTS("allowed_media_types", "set media types to accept from the server"),
     { "min_port", "set minimum local UDP port", OFFSET(rtp_port_min), AV_OPT_TYPE_INT, {.i64 = RTSP_RTP_PORT_MIN}, 0, 65535, DEC|ENC },
     { "max_port", "set maximum local UDP port", OFFSET(rtp_port_max), AV_OPT_TYPE_INT, {.i64 = RTSP_RTP_PORT_MAX}, 0, 65535, DEC|ENC },
+    { "headers", "set custom HTTP headers, can override built in default headers", OFFSET(headers), AV_OPT_TYPE_STRING, { .str = NULL }, 0, 0, DEC | ENC },
     { "listen_timeout", "set maximum timeout (in seconds) to wait for incoming connections (-1 is infinite, imply flag listen)", OFFSET(initial_timeout), AV_OPT_TYPE_INT, {.i64 = -1}, INT_MIN, INT_MAX, DEC },
 #if FF_API_OLD_RTSP_OPTIONS
     { "timeout", "set maximum timeout (in seconds) to wait for incoming connections (-1 is infinite, imply flag listen) (deprecated, use listen_timeout)", OFFSET(initial_timeout), AV_OPT_TYPE_INT, {.i64 = -1}, INT_MIN, INT_MAX, DEC|AV_OPT_FLAG_DEPRECATED },
@@ -215,6 +216,7 @@ static int get_sockaddr(AVFormatContext *s,
     return 0;
 }
 
+#define CONFIG_RTPDEC 1
 #if CONFIG_RTPDEC
 static void init_rtp_handler(const RTPDynamicProtocolHandler *handler,
                              RTSPStream *rtsp_st, AVStream *st)
@@ -884,6 +886,7 @@ int ff_rtsp_open_transport_ctx(AVFormatContext *s, RTSPStream *rtsp_st)
     return 0;
 }
 
+#define CONFIG_RTSP_DEMUXER 1
 #if CONFIG_RTSP_DEMUXER || CONFIG_RTSP_MUXER
 static void rtsp_parse_range(int *min_ptr, int *max_ptr, const char **pp)
 {
@@ -1584,6 +1587,22 @@ int ff_rtsp_make_setup_request(AVFormatContext *s, const char *host, int port,
                         "RealChallenge2: %s, sd=%s\r\n",
                         rt->session_id, real_res, real_csum);
         }
+
+        if (rt->headers) {
+            int len = strlen(rt->headers);
+            if (len < 2 || strcmp("\r\n", rt->headers + len - 2)) {
+                av_log(s, AV_LOG_WARNING,
+                       "No trailing CRLF found in HTTP header. Adding it.\n");
+                err = av_reallocp(&rt->headers, len + 3);
+                if (err < 0)
+                    goto fail;
+                rt->headers[len]     = '\r';
+                rt->headers[len + 1] = '\n';
+                rt->headers[len + 2] = '\0';
+            }
+        }
+        av_strlcat(cmd, rt->headers, sizeof(cmd));
+
         ff_rtsp_send_cmd(s, "SETUP", rtsp_st->control_url, cmd, reply, NULL);
         if (reply->status_code == 461 /* Unsupported protocol */ && i == 0) {
             err = 1;
@@ -2003,6 +2022,7 @@ redirect:
 }
 #endif /* CONFIG_RTSP_DEMUXER || CONFIG_RTSP_MUXER */
 
+#define CONFIG_RTPDEC 1
 #if CONFIG_RTPDEC
 static int parse_rtsp_message(AVFormatContext *s)
 {
@@ -2159,6 +2179,9 @@ static int read_packet(AVFormatContext *s,
 #if CONFIG_RTSP_DEMUXER
     case RTSP_LOWER_TRANSPORT_TCP:
         len = ff_rtsp_tcp_read_packet(s, rtsp_st, rt->recvbuf, RECVBUF_SIZE);
+        len = pick_stream(s, rtsp_st, rt->recvbuf, len);
+        if (len > 0 && (*rtsp_st)->transport_priv && rt->transport == RTSP_TRANSPORT_RTP)
+            ff_rtp_check_and_send_back_rr((*rtsp_st)->transport_priv, NULL, s->pb, len);
         break;
 #endif
     case RTSP_LOWER_TRANSPORT_UDP:
@@ -2484,6 +2507,7 @@ AVInputFormat ff_sdp_demuxer = {
 };
 #endif /* CONFIG_SDP_DEMUXER */
 
+#define CONFIG_RTP_DEMUXER 1
 #if CONFIG_RTP_DEMUXER
 static int rtp_probe(const AVProbeData *p)
 {
