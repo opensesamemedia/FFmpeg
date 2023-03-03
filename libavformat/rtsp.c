@@ -99,7 +99,7 @@ const AVOption ff_rtsp_options[] = {
     { "max_port", "set maximum local UDP port", OFFSET(rtp_port_max), AV_OPT_TYPE_INT, {.i64 = RTSP_RTP_PORT_MAX}, 0, 65535, DEC|ENC },
     { "listen_timeout", "set maximum timeout (in seconds) to wait for incoming connections (-1 is infinite, imply flag listen)", OFFSET(initial_timeout), AV_OPT_TYPE_INT, {.i64 = -1}, INT_MIN, INT_MAX, DEC },
     { "timeout", "set timeout (in microseconds) of socket I/O operations", OFFSET(stimeout), AV_OPT_TYPE_INT64, {.i64 = 0}, INT_MIN, INT64_MAX, DEC },
-    { "headers", "set custom HTTP headers, can override built in default headers", OFFSET(headers), AV_OPT_TYPE_STRING, { .str = NULL }, 0, 0, DEC | ENC },
+    { "headers", "set custom HTTP headers, can override built in default headers", OFFSET(headers), AV_OPT_TYPE_STRING, { .str = NULL }, 0, 0, DEC|ENC },
     COMMON_OPTS(),
     { "user_agent", "override User-Agent header", OFFSET(user_agent), AV_OPT_TYPE_STRING, {.str = LIBAVFORMAT_IDENT}, 0, 0, DEC },
     { NULL },
@@ -1361,6 +1361,21 @@ static int rtsp_send_cmd_with_content_async(AVFormatContext *s,
     snprintf(buf, sizeof(buf), "%s %s RTSP/1.0\r\n", method, url);
     if (headers)
         av_strlcat(buf, headers, sizeof(buf));
+    if (rt->headers) {
+        int len = strlen(rt->headers);
+        av_log(s, AV_LOG_TRACE, "Header %s\n", rt->headers);
+        if (len < 2 || strcmp("\r\n", rt->headers + len - 2)) {
+            av_log(s, AV_LOG_WARNING,
+                   "No trailing CRLF found in HTTP header. Adding it.\n");
+            if(av_reallocp(&rt->headers, len + 3) < 0 )
+              return AVERROR(ENOTCONN);
+            rt->headers[len]     = '\r';
+            rt->headers[len + 1] = '\n';
+            rt->headers[len + 2] = '\0';
+        }
+      av_strlcat(buf, rt->headers, sizeof(buf));
+    }
+
     av_strlcatf(buf, sizeof(buf), "CSeq: %d\r\n", rt->seq);
     av_strlcatf(buf, sizeof(buf), "User-Agent: %s\r\n",  rt->user_agent);
     if (rt->session_id[0] != '\0' && (!headers ||
@@ -1595,21 +1610,6 @@ int ff_rtsp_make_setup_request(AVFormatContext *s, const char *host, int port,
                         "If-Match: %s\r\n"
                         "RealChallenge2: %s, sd=%s\r\n",
                         rt->session_id, real_res, real_csum);
-        }
-
-        if (rt->headers) {
-            int len = strlen(rt->headers);
-            if (len < 2 || strcmp("\r\n", rt->headers + len - 2)) {
-                av_log(s, AV_LOG_WARNING,
-                       "No trailing CRLF found in HTTP header. Adding it.\n");
-                err = av_reallocp(&rt->headers, len + 3);
-                if (err < 0)
-                    goto fail;
-                rt->headers[len]     = '\r';
-                rt->headers[len + 1] = '\n';
-                rt->headers[len + 2] = '\0';
-            }
-          av_strlcat(cmd, rt->headers, sizeof(cmd));
         }
 
         ff_rtsp_send_cmd(s, "SETUP", rtsp_st->control_url, cmd, reply, NULL);
