@@ -1545,6 +1545,7 @@ int ff_rtsp_make_setup_request(AVFormatContext *s, const char *host, int port,
 
         rtp_opened:
             port = ff_rtp_get_local_rtp_port(rtsp_st->rtp_handle);
+            av_log(s, AV_LOG_ERROR, "Opened port %d\n", port);
         have_port:
             av_strlcpy(transport, trans_pref, sizeof(transport));
             av_strlcat(transport,
@@ -2320,6 +2321,7 @@ redo:
                             st2->time_base);
                     }
                 }
+                av_log(s, AV_LOG_INFO, "RTCP incoming");
                 // Make real NTP start time available in AVFormatContext
                 if (s->start_time_realtime == AV_NOPTS_VALUE) {
                     s->start_time_realtime = av_rescale (rtpctx->first_rtcp_ntp_time - (NTP_OFFSET << 32), 1000000, 1LL << 32);
@@ -2463,6 +2465,7 @@ static int sdp_read_header(AVFormatContext *s)
                                 rtsp_st->exclude_source_addrs);
             err = ffurl_open_whitelist(&rtsp_st->rtp_handle, url, AVIO_FLAG_READ,
                            &s->interrupt_callback, &opts, s->protocol_whitelist, s->protocol_blacklist, NULL);
+            av_log(s, AV_LOG_INFO, "RTCP incoming port %d", rtsp_st->sdp_port);
 
             av_dict_free(&opts);
 
