@@ -1609,8 +1609,8 @@ int ff_rtsp_make_setup_request(AVFormatContext *s, const char *host, int port,
                 rt->headers[len + 1] = '\n';
                 rt->headers[len + 2] = '\0';
             }
+          av_strlcat(cmd, rt->headers, sizeof(cmd));
         }
-        av_strlcat(cmd, rt->headers, sizeof(cmd));
 
         ff_rtsp_send_cmd(s, "SETUP", rtsp_st->control_url, cmd, reply, NULL);
         if (reply->status_code == 461 /* Unsupported protocol */ && i == 0) {
