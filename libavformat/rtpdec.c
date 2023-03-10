@@ -309,7 +309,7 @@ static void rtcp_update_jitter(RTPStatistics *s, uint32_t sent_timestamp,
 }
 
 int ff_rtp_check_and_send_back_rr(RTPDemuxContext *s, URLContext *fd,
-                                  AVIOContext *avio, int count)
+                                  AVIOContext *avio, int count, int is_tcp)
 {
     AVIOContext *pb;
     uint8_t *buf;
@@ -342,6 +342,11 @@ int ff_rtp_check_and_send_back_rr(RTPDemuxContext *s, URLContext *fd,
     else if (avio_open_dyn_buf(&pb) < 0)
         return -1;
 
+    if (is_tcp) { /* RTSP_LOWER_TRANSPORT_TCP */
+      avio_w8(pb, '$'); /* Interleaved frame */
+      avio_w8(pb, 1); /* RTCP frame */
+      avio_wb16(pb, 0); /* Placeholder for length */
+    }
     // Receiver Report
     avio_w8(pb, (RTP_VERSION << 6) + 1); /* 1 report block */
     avio_w8(pb, RTCP_RR);
@@ -401,6 +406,11 @@ int ff_rtp_check_and_send_back_rr(RTPDemuxContext *s, URLContext *fd,
     if (!fd)
         return 0;
     len = avio_close_dyn_buf(pb, &buf);
+    if (is_tcp) { /* RTSP_LOWER_TRANSPORT_TCP */
+      uint16_t len_tcp = (len - 4)&0xFFFF;
+      buf[2] = (len_tcp>>8)&0xff;
+      buf[3] = len_tcp&0xff;
+    }
     if ((len > 0) && buf) {
         int av_unused result;
         av_log(s->ic, AV_LOG_TRACE, "sending %d bytes of RR\n", len);
