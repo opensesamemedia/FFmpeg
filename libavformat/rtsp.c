@@ -2191,15 +2191,18 @@ static int read_packet(AVFormatContext *s,
     case RTSP_LOWER_TRANSPORT_TCP:
         len = ff_rtsp_tcp_read_packet(s, rtsp_st, rt->recvbuf, RECVBUF_SIZE);
         len = pick_stream(s, rtsp_st, rt->recvbuf, len);
-        if (len > 0 && (*rtsp_st)->transport_priv && rt->transport == RTSP_TRANSPORT_RTP)
-            ff_rtp_check_and_send_back_rr((*rtsp_st)->transport_priv, NULL, s->pb, len);
+        if (len > 0 && (*rtsp_st)->transport_priv && rt->transport == RTSP_TRANSPORT_RTP) {
+            ff_rtp_check_and_send_back_rr((*rtsp_st)->transport_priv, rt->rtsp_hd_out, NULL, len,
+                rt->lower_transport == RTSP_LOWER_TRANSPORT_TCP);
+        }
         break;
 #endif
     case RTSP_LOWER_TRANSPORT_UDP:
     case RTSP_LOWER_TRANSPORT_UDP_MULTICAST:
         len = udp_read_packet(s, rtsp_st, rt->recvbuf, RECVBUF_SIZE, wait_end);
         if (len > 0 && (*rtsp_st)->transport_priv && rt->transport == RTSP_TRANSPORT_RTP)
-            ff_rtp_check_and_send_back_rr((*rtsp_st)->transport_priv, (*rtsp_st)->rtp_handle, NULL, len);
+            ff_rtp_check_and_send_back_rr((*rtsp_st)->transport_priv, (*rtsp_st)->rtp_handle, NULL, len,
+                rt->lower_transport == RTSP_LOWER_TRANSPORT_TCP);
         break;
     case RTSP_LOWER_TRANSPORT_CUSTOM:
         if (first_queue_st && rt->transport == RTSP_TRANSPORT_RTP &&
@@ -2209,7 +2212,8 @@ static int read_packet(AVFormatContext *s,
             len = avio_read_partial(s->pb, rt->recvbuf, RECVBUF_SIZE);
         len = pick_stream(s, rtsp_st, rt->recvbuf, len);
         if (len > 0 && (*rtsp_st)->transport_priv && rt->transport == RTSP_TRANSPORT_RTP)
-            ff_rtp_check_and_send_back_rr((*rtsp_st)->transport_priv, NULL, s->pb, len);
+            ff_rtp_check_and_send_back_rr((*rtsp_st)->transport_priv, NULL, s->pb, len,
+                rt->lower_transport == RTSP_LOWER_TRANSPORT_TCP);
         break;
     }
 

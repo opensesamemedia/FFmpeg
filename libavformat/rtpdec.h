@@ -72,7 +72,7 @@ void ff_rtp_send_punch_packets(URLContext* rtp_handle);
  * (we don't have access to the rtcp handle from here)
  */
 int ff_rtp_check_and_send_back_rr(RTPDemuxContext *s, URLContext *fd,
-                                  AVIOContext *avio, int count);
+                                  AVIOContext *avio, int count, int is_tcp);
 int ff_rtp_send_rtcp_feedback(RTPDemuxContext *s, URLContext *fd,
                               AVIOContext *avio);
 
