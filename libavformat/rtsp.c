@@ -1094,6 +1094,7 @@ void ff_rtsp_parse_line(AVFormatContext *s,
                         RTSPState *rt, const char *method)
 {
     const char *p;
+    uint8_t *side_data;
 
     /* NOTE: we do case independent match for broken servers */
     p = buf;
@@ -1151,6 +1152,11 @@ void ff_rtsp_parse_line(AVFormatContext *s,
     } else if (av_stristart(p, "com.ses.streamID:", &p)) {
         p += strspn(p, SPACE_CHARS);
         av_strlcpy(reply->stream_id, p, sizeof(reply->stream_id));
+    } else if (av_stristart(p, "SyncStage:", &p)) {
+        p += strspn(p, SPACE_CHARS);
+        side_data = av_stream_new_side_data(s->streams[0],
+                AV_PKT_DATA_NEW_EXTRADATA, HTTP_HEADERS_SIZE);
+        av_strlcpy(side_data, p, HTTP_HEADERS_SIZE);
     }
 }
 
