@@ -32,9 +32,8 @@ esac; done
 if [[ $PROGRAMS == "1" ]]; then
   PROGRAMS_CMD="--enable-ffplay --enable-sdl2"
   PREFIX="--prefix=/home/azajas/work/m2e/Aps/FFmpeg/out"
-  SHARED="--disable-shared --enable-static "
   PROTOCOLS="--enable-protocol=file"
-  PARSERS="--enable-parser=aac,mp3"
+  SHARED="--disable-shared --enable-static "
 else
   PROGRAMS_CMD="--disable-programs"
   PREFIX="--prefix=/home/azajas/work/m2e/libav-rtsp/lib/ffmpeg"
@@ -43,17 +42,19 @@ fi
 
 time bear -- ./configure $PROGRAMS_CMD --disable-everything --enable-libopus \
   ${SHARED} \
-  --enable-debug --disable-stripping \
-  --disable-optimizations --extra-cflags=-Og --extra-cflags=-fno-omit-frame-pointer \
-  --enable-debug=1 --extra-cflags=-fno-inline \
+  --disable-stripping \
+  --disable-optimizations --extra-cflags="-O0 -g -fno-omit-frame-pointer -fno-inline" \
+  --extra-ldflags="-g" \
+  --optflags="-O0" \
+  --enable-debug=3  \
   ${PREFIX} \
   ${PROTOCOLS} \
   ${PARSERS} \
   --disable-doc \
-  --enable-encoder=pcm_f32le,pcm_s16le,libopus,copy,aac*,ac3*,opus,vorbis \
-  --enable-decoder=pcm_f32le,pcm_s16le,libopus,copy,aac*,ac3*,opus,vorbis \
-  --enable-muxer=pcm_f32le,pcm_s16le,rtsp,rtp,aac*,ac3*,ogg,opus \
-  --enable-demuxer=pcm_f32le,pcm_s16le,rtsp,rtp,aac*,ac3*,ogg,opus \
+  --enable-encoder=pcm_f32le,pcm_s16le,libopus,copy,opus,vorbis \
+  --enable-decoder=pcm_f32le,pcm_s16le,libopus,copy,opus,vorbis \
+  --enable-muxer=pcm_f32le,pcm_s16le,rtsp,rtp,ogg,opus \
+  --enable-demuxer=pcm_f32le,pcm_s16le,rtsp,rtp,ogg,opus \
   --enable-filter=copy,volume,aformat,aresample,arnndn
 
 

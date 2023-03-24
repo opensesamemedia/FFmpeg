@@ -187,6 +187,16 @@ static int rtcp_parse_packet(RTPDemuxContext *s, const unsigned char *buf,
 {
     int payload_len;
     while (len >= 4) {
+        // RTCP DEVEL LOGS
+        /*av_log(s->ic, AV_LOG_TRACE, "REC RTCP: \n\n[");
+        for(int i = 0; i < len; i++ ) {
+                  av_log(s->ic, AV_LOG_TRACE, "%02x ", buf[i]);
+                  if(i%16 == 15) {
+                    av_log(s->ic, AV_LOG_TRACE, "\n");
+                  }
+        }
+        av_log(s->ic, AV_LOG_TRACE, "]\n\n");
+*/
         payload_len = FFMIN(len, (AV_RB16(buf + 2) + 1) * 4);
 
         switch (buf[1]) {
@@ -198,6 +208,8 @@ static int rtcp_parse_packet(RTPDemuxContext *s, const unsigned char *buf,
 
             s->last_rtcp_reception_time = av_gettime_relative();
             s->last_rtcp_ntp_time  = AV_RB64(buf + 8);
+        // RTCP DEVEL LOGS
+            /*av_log(s->ic, AV_LOG_TRACE, ">>> Received last time %016lx\n", s->last_rtcp_ntp_time);*/
             s->last_rtcp_timestamp = AV_RB32(buf + 16);
             if (s->first_rtcp_ntp_time == AV_NOPTS_VALUE) {
                 s->first_rtcp_ntp_time = s->last_rtcp_ntp_time;
@@ -381,6 +393,8 @@ int ff_rtp_check_and_send_back_rr(RTPDemuxContext *s, URLContext *fd,
         avio_wb32(pb, 0); /* delay since last SR */
     } else {
         uint32_t middle_32_bits   = s->last_rtcp_ntp_time >> 16; // this is valid, right? do we need to handle 64 bit values special?
+        // RTCP DEVEL LOGS
+        /*av_log(s->ic, AV_LOG_TRACE, ">>> Midle 32 %08x %016lx\n", middle_32_bits, s->last_rtcp_ntp_time);*/
         uint32_t delay_since_last = av_rescale(av_gettime_relative() - s->last_rtcp_reception_time,
                                                65536, AV_TIME_BASE);
 

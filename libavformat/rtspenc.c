@@ -178,6 +178,35 @@ int ff_rtsp_tcp_write_packet(AVFormatContext *s, RTSPStream *rtsp_st)
     return ffio_open_dyn_packet_buf(&rtpctx->pb, rt->pkt_size);
 }
 
+static int rtsp_udp_check_rr(AVFormatContext *s, RTSPStream *rtsp_st) {
+    int *fds = NULL, fdsnum;
+    int ret, n;
+    URLContext *rtp_url;
+    const URLProtocol *url_prot;
+    struct pollfd p2;
+    uint8_t buffer[256];
+    rtp_url = rtsp_st->rtp_handle;
+    url_prot = rtp_url->prot;
+    ret = url_prot->url_get_multi_file_handle(rtp_url, &fds, &fdsnum);
+    if (ret != 0 ) {
+      av_freep(&fds);
+      return ret;
+    }
+
+    p2.fd = fds[1];
+    p2.events = POLLIN;
+
+    n = poll(&p2, 1, 0);
+    if (n > 0) {
+      if (p2.revents & POLLIN) {
+        ret = ffurl_read(rtp_url, buffer, 256);
+        rtsp_parse_rr(s, rtsp_st, buffer, ret);
+      }
+    }
+    av_freep(&fds);
+    return ret;
+}
+
 static int rtsp_write_packet(AVFormatContext *s, AVPacket *pkt)
 {
     RTSPState *rt = s->priv_data;
@@ -224,6 +253,9 @@ static int rtsp_write_packet(AVFormatContext *s, AVPacket *pkt)
      */
     if (!ret && rt->lower_transport == RTSP_LOWER_TRANSPORT_TCP)
         ret = ff_rtsp_tcp_write_packet(s, rtsp_st);
+    if (rt->lower_transport == RTSP_LOWER_TRANSPORT_UDP) {
+      rtsp_udp_check_rr(s, rtsp_st);
+    }
     return ret;
 }
 
