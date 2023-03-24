@@ -2669,6 +2669,100 @@ fail:
     return ret;
 }
 
+
+typedef union {
+  uint8_t buf[256];
+  struct {
+    uint8_t version :2;
+    uint8_t p :1;
+    uint8_t rc :5;
+    uint8_t pt;
+    uint8_t len[2]; //LE
+    uint8_t ssrc_sender[4];
+    uint8_t ssrc_1[4];
+    uint8_t fraction_lost;
+    uint8_t cumulative_lost[3]; //LE
+    uint8_t highest_sequence_number[4];
+    uint8_t interarrival_jitter[4];
+    uint8_t last_sr[4];
+    uint8_t delay_since_last_sr[4];
+  } __attribute__((__packed__));
+} RTCPReceiverReport;
+
+int rtsp_parse_rr(AVFormatContext *s, RTSPStream *rtsp_st, uint8_t *buf, int len) {
+  RTCPReceiverReport *rr = (RTCPReceiverReport*)buf;
+  AVFormatContext *rtpctx = rtsp_st->transport_priv;
+  RTPMuxContext *rtpmux = rtpctx->priv_data;
+  int64_t ntp_now = ff_ntp_time();
+  uint32_t last_sr = ntohl(*(uint32_t *)(rr->last_sr));
+  int64_t last_sr64 = last_sr;
+  int64_t  ntp_sender_time = rtpmux->last_rtcp_ntp_time;
+  uint64_t ntp_msb =  (ntp_sender_time / 1000000) << 32;
+  uint32_t ntp_lsb =  ((ntp_sender_time % 1000000) << 32) / 1000000;
+
+  uint64_t ntp_last_combined =  ntp_msb  | ntp_lsb;
+
+  int64_t last_sr_combined = (ntp_last_combined & 0xffff000000000000) | ((last_sr64)<<16);
+  int64_t last_sr_whole =  ((last_sr_combined & 0xffffffff00000000) >> 32)*1000000;
+  int64_t last_sr_usec =  ((last_sr_combined & 0xffffffff) * 1000000)>>32;
+  int64_t received_ts = last_sr_whole + last_sr_usec;
+  //RTCP SR DEVEL LOGS
+  /*int64_t receiver_diff = received_ts - ntp_sender_time;*/
+  int64_t now_diff = ntp_now - received_ts;
+  float now_diff_s = ((float)now_diff)/1000000;
+  int delay_since_last_sr = ntohl(*(uint32_t *)(rr->delay_since_last_sr));
+  float delay_since_last_sr_s = (float)delay_since_last_sr/65536;
+  uint32_t jitter = ntohl(*(uint32_t *)(rr->interarrival_jitter));
+  uint32_t ssrc = ntohl(*(uint32_t *)(rr->ssrc_sender));
+  float jitter_ms = (float)jitter * 1000/48000;
+  float latency_ms = (float)(now_diff_s - delay_since_last_sr_s)*1000;
+
+  if (len < 2 || rr->buf[1] != RTCP_RR) {
+    av_log(s, AV_LOG_ERROR, "Not a RTCP RR %02x \n", rr->buf[1]);
+    return -1;
+  }
+//write multiple av_log calls that print rr variable content line by line
+  // RTCP SR DEVEL LOGS
+  /*av_log(s, AV_LOG_TRACE, "RTCP Receiver Report:\n");
+  av_log(s, AV_LOG_TRACE, "  version: %d\n", rr->version);
+  av_log(s, AV_LOG_TRACE, "  p: %d\n", rr->p);
+  av_log(s, AV_LOG_TRACE, "  rc: %d\n", rr->rc);
+  av_log(s, AV_LOG_TRACE, "  pt: %d\n", rr->pt);
+  av_log(s, AV_LOG_TRACE, "  len: %d \n", ntohs(*(uint16_t *)(rr->len)));
+  av_log(s, AV_LOG_TRACE, "  ssrc_sender: %08x \n", ntohl(*(uint32_t *)(rr->ssrc_sender)));
+  av_log(s, AV_LOG_TRACE, "  ssrc_1 %08x \n", ntohl(*(uint32_t *)(rr->ssrc_1)));
+  av_log(s, AV_LOG_TRACE, "  fraction_lost: %d \n", rr->fraction_lost);
+  av_log(s, AV_LOG_TRACE, "  cumulative_lost: %d \n", ntohl(*(uint32_t *)(rr->cumulative_lost))&0xffffff00);
+  av_log(s, AV_LOG_TRACE, "  highest_sequence_number: %d \n", ntohl(*(uint32_t *)(rr->highest_sequence_number)));
+  av_log(s, AV_LOG_TRACE, "  interarrival_jitter: %d \n", ntohl(*(uint32_t *)(rr->interarrival_jitter)));
+  av_log(s, AV_LOG_TRACE, " ntp_sender_time: %ld, ntp_combined: %16lx, \n last_sr_combined: %16lx,  \
+      last_sr_whole %ld, \n last_sr_usec %ld, received_ts %ld\n",
+      ntp_sender_time, ntp_last_combined, last_sr_combined, last_sr_whole, last_sr_usec, received_ts);
+  av_log(s, AV_LOG_TRACE, "receiver_diff us: %ld now_diff: %ld", receiver_diff, now_diff);
+
+  av_log(s, AV_LOG_TRACE, "  last_sr: %ld \n", last_sr_combined);
+  av_log(s, AV_LOG_TRACE, "  delay_since_last_sr: %.03f delay: %0.3f latency: %0.3f\n", delay_since_last_sr_s, now_diff_s, now_diff_s - delay_since_last_sr_s);
+
+  av_log(s, AV_LOG_TRACE, "  last_rtcp_ntp_time: %ld %016lx\n", rtpmux->last_rtcp_ntp_time, rtpmux->last_rtcp_ntp_time);
+  av_log(s, AV_LOG_TRACE, "  first_rtcp_ntp_time: %ld \n", rtpmux->first_rtcp_ntp_time);
+  av_log(s, AV_LOG_TRACE, "  octet_count: %d \n", rtpmux->octet_count);
+  av_log(s, AV_LOG_TRACE, "  last_octet_count: %d \n", rtpmux->last_octet_count);*/
+  if(ssrc != 0x00000000) {
+    av_log(s, AV_LOG_INFO, "ssrc %08x latency_ms: %.01f jitter_ms:%.01f \n", ssrc == (rtpmux->ssrc +1) ? 0x0 : ssrc, latency_ms, jitter_ms);
+  }
+
+  //RTCP SR DEVEL LOGS
+  /*av_log(s, AV_LOG_TRACE, "RR RAW: [\n");
+  for(int i = 0; i < len ; i++ ) {
+            av_log(s, AV_LOG_TRACE, "%02x ", rr->buf[i]);
+            if(i%16 == 15) {
+              av_log(s, AV_LOG_TRACE, "\n");
+            }
+  }
+  av_log(s, AV_LOG_TRACE, "]\n");*/
+  return 0;
+}
+
 static const AVClass rtp_demuxer_class = {
     .class_name     = "RTP demuxer",
     .item_name      = av_default_item_name,
