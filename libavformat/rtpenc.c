@@ -301,6 +301,8 @@ static void rtcp_send_sr(AVFormatContext *s1, int64_t ntp_time, int bye)
     avio_wb32(s1->pb, s->ssrc);
     avio_wb32(s1->pb, ntp_time / 1000000);
     avio_wb32(s1->pb, ((ntp_time % 1000000) << 32) / 1000000);
+    // RTCP SR DEVEL LOGS
+    /*av_log(s->ic, AV_LOG_TRACE, ">>> Sent last time %016lx %08lx %08lx\n", s->last_rtcp_ntp_time, ntp_time / 1000000, ((ntp_time % 1000000) << 32) / 1000000);*/
     avio_wb32(s1->pb, rtp_ts);
     avio_wb32(s1->pb, s->packet_count);
     avio_wb32(s1->pb, s->octet_count);
@@ -326,8 +328,36 @@ static void rtcp_send_sr(AVFormatContext *s1, int64_t ntp_time, int bye)
         avio_wb16(s1->pb, 1); /* length in words - 1 */
         avio_wb32(s1->pb, s->ssrc);
     }
+    // RTCP SR DEVEL LOGS
+        /*av_log(s->ic, AV_LOG_TRACE, "TX RTCP: \n[");
+        int size = (s1->pb->buf_ptr - s1->pb->buffer);
+        for(int i = 0; i < size + 2; i++ ) {
+                  av_log(s->ic, AV_LOG_TRACE, "%02x ", s1->pb->buffer[i]);
+                  if(i%16 == 15) {
+                    av_log(s->ic, AV_LOG_TRACE, "\n");
+                  }
+        }
+        av_log(s->ic, AV_LOG_TRACE, "]\n");*/
 
     avio_flush(s1->pb);
+    // RTCP SR DEVEL LOGS
+    /*static int cnt = 10;
+    cnt--;*/
+    /*if (cnt <= 0) {*/
+      /*cnt = 10;*/
+      /*uint8_t buffer[1024];*/
+      /*avio_read(s1->pb, buffer, 8);*/
+      /*av_log(s->ic, AV_LOG_INFO, "RECEIVER REPORT READ: \n[");*/
+      /*int size = 10;*/
+      /*for(int i = 0; i < size + 2; i++ ) {*/
+                /*av_log(s->ic, AV_LOG_INFO, "%02x ", buffer);*/
+                /*if(i%16 == 15) {*/
+                  /*av_log(s->ic, AV_LOG_INFO, "\n");*/
+                /*}*/
+      /*}*/
+      /*av_log(s->ic, AV_LOG_INFO, "]\n");*/
+
+    /*}*/
 }
 
 /* send an rtp packet. sequence number is incremented, but the caller
