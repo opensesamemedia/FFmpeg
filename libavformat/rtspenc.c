@@ -253,7 +253,7 @@ static int rtsp_write_packet(AVFormatContext *s, AVPacket *pkt)
      */
     if (!ret && rt->lower_transport == RTSP_LOWER_TRANSPORT_TCP)
         ret = ff_rtsp_tcp_write_packet(s, rtsp_st);
-    if (rt->lower_transport == RTSP_LOWER_TRANSPORT_UDP) {
+    if (rt->lower_transport == RTSP_LOWER_TRANSPORT_UDP && rtsp_st->rtp_handle != NULL) {
       rtsp_udp_check_rr(s, rtsp_st);
     }
     return ret;
