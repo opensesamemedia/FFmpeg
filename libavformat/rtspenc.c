@@ -76,7 +76,9 @@ int ff_rtsp_setup_output_streams(AVFormatContext *s, const char *addr)
     ff_url_join(url, sizeof(url),
                 "rtsp", NULL, addr, -1, NULL);
     ctx_array[0] = &sdp_ctx;
-    sdp_ctx.pb = (AVIOContext *)rt;
+    if (rt->rtsp_flags & RTSP_FLAG_TRANSMIT_SRTP) {
+      sdp_ctx.pb = (AVIOContext *)rt;
+    }
     if (av_sdp_create(ctx_array, 1, sdp, SDP_MAX_SIZE)) {
         av_free(sdp);
         return AVERROR_INVALIDDATA;
