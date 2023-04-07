@@ -59,6 +59,7 @@ enum RTSPTransport {
     RTSP_TRANSPORT_RTP, /**< Standards-compliant RTP */
     RTSP_TRANSPORT_RDT, /**< Realmedia Data Transport */
     RTSP_TRANSPORT_RAW, /**< Raw data (over UDP) */
+    RTSP_TRANSPORT_SRTP, /**< Raw data (over UDP) */
     RTSP_TRANSPORT_NB
 };
 
@@ -420,6 +421,8 @@ typedef struct RTSPState {
     char *localaddr;
     /** Additional header for rtsp connections **/
     char *headers;
+    char *srtp_out_suite;
+    char *srtp_out_params;
 } RTSPState;
 
 #define RTSP_FLAG_FILTER_SRC  0x1    /**< Filter incoming UDP packets -
@@ -431,6 +434,7 @@ typedef struct RTSPState {
                                           address of received packets. */
 #define RTSP_FLAG_PREFER_TCP  0x10   /**< Try RTP via TCP first if possible. */
 #define RTSP_FLAG_SATIP_RAW   0x20   /**< Export SAT>IP stream as raw MPEG-TS */
+#define RTSP_FLAG_TRANSMIT_SRTP   0x40   /**< Use srtp as transmitter protocol */
 
 typedef struct RTSPSource {
     char addr[128]; /**< Source-specific multicast include source IP address (from SDP content) */
