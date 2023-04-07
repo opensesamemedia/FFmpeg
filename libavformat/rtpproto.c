@@ -131,6 +131,16 @@ int ff_rtp_set_remote_url(URLContext *h, const char *uri)
     return 0;
 }
 
+/** unwrap rtp handler first if protocol is srtp */
+
+int ff_rtp_set_remote_url_srtp(URLContext *h, const char *uri)
+{
+    RTPContext *s = h->priv_data;
+    URLContext *ss = s->rtp_hd;
+    return ff_rtp_set_remote_url(ss, uri);
+}
+
+
 static int get_port(const struct sockaddr_storage *ss)
 {
     if (ss->ss_family == AF_INET)
