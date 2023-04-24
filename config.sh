@@ -30,14 +30,15 @@ esac; done
 #if [ -z "$FILE" ]; then usage "File is not set"; fi;
 
 if [[ $PROGRAMS == "1" ]]; then
-  PROGRAMS_CMD="--enable-ffplay --enable-sdl2"
+  PROGRAMS_CMD="--enable-ffplay --enable-sdl2 --enable-gnutls"
   PREFIX="--prefix=/home/azajas/work/m2e/Aps/FFmpeg/out"
-  PROTOCOLS="--enable-protocol=file,srtp"
+  PROTOCOLS="--enable-protocol=file,srtp,tls,https"
   SHARED="--disable-shared --enable-static "
 else
   PROGRAMS_CMD="--disable-programs"
   PREFIX="--prefix=/home/azajas/work/m2e/libav-rtsp/lib/ffmpeg"
   SHARED="--enable-shared --disable-static "
+  PROTOCOLS="--enable-protocol=srtp"
 fi
 
 time bear -- ./configure $PROGRAMS_CMD --disable-everything --enable-libopus \

@@ -80,7 +80,6 @@
     { "buffer_size",        "Underlying protocol send/receive buffer size",                  OFFSET(buffer_size),           AV_OPT_TYPE_INT, { .i64 = -1 }, -1, INT_MAX, DEC|ENC }, \
     { "pkt_size",           "Underlying protocol send packet size",                          OFFSET(pkt_size),              AV_OPT_TYPE_INT, { .i64 = 1472 }, -1, INT_MAX, ENC } \
 
-
 const AVOption ff_rtsp_options[] = {
     { "initial_pause",  "do not start playing the stream immediately", OFFSET(initial_pause), AV_OPT_TYPE_BOOL, {.i64 = 0}, 0, 1, DEC },
     FF_RTP_FLAG_OPTS(RTSPState, rtp_muxer_flags),
@@ -105,6 +104,8 @@ const AVOption ff_rtsp_options[] = {
     { "user_agent", "override User-Agent header", OFFSET(user_agent), AV_OPT_TYPE_STRING, {.str = LIBAVFORMAT_IDENT}, 0, 0, DEC },
     { "srtp_out_suite", "", OFFSET(srtp_out_suite), AV_OPT_TYPE_STRING, { .str = NULL }, 0, 0, ENC},
     { "srtp_out_params", "", OFFSET(srtp_out_params), AV_OPT_TYPE_STRING, { .str = NULL }, 0, 0, ENC},
+    { "ca_file", "Certificate Authority database file", OFFSET(ca_file), AV_OPT_TYPE_STRING, {.str = NULL}, 0, 0, DEC|ENC },
+    { "tls_verify", "verify the peer certificate", OFFSET(verify), AV_OPT_TYPE_BOOL, {.i64 = 0}, 0, 1, DEC|ENC},
     { NULL },
 };
 
@@ -1809,7 +1810,6 @@ redirect:
     if (!strcmp(proto, "rtsps")) {
         lower_rtsp_proto         = "tls";
         default_port             = RTSPS_DEFAULT_PORT;
-        rt->lower_transport_mask = 1 << RTSP_LOWER_TRANSPORT_TCP;
     } else if (!strcmp(proto, "satip")) {
         av_strlcpy(proto, "rtsp", sizeof(proto));
         rt->server_type = RTSP_SERVER_SATIP;
@@ -1936,9 +1936,22 @@ redirect:
     } else {
         int ret;
         /* open the tcp connection */
-        ff_url_join(tcpname, sizeof(tcpname), lower_rtsp_proto, NULL,
-                    host, port,
-                    "?timeout=%"PRId64, rt->stimeout);
+        if (strcmp("tls", lower_rtsp_proto) == 0) {
+          if(rt->ca_file)
+            ff_url_join(tcpname, sizeof(tcpname), lower_rtsp_proto, NULL,
+                        host, port,
+                        "?timeout=%"PRId64"&verify=%d&cafile=%s",
+                        rt->stimeout, rt->verify, rt->ca_file);
+          else
+            ff_url_join(tcpname, sizeof(tcpname), lower_rtsp_proto, NULL,
+                        host, port,
+                        "?timeout=%"PRId64"&verify=%d",
+                        rt->stimeout, rt->verify);
+        } else {
+            ff_url_join(tcpname, sizeof(tcpname), lower_rtsp_proto, NULL,
+                        host, port,
+                        "?timeout=%"PRId64, rt->stimeout);
+        }
         if ((ret = ffurl_open_whitelist(&rt->rtsp_hd, tcpname, AVIO_FLAG_READ_WRITE,
                        &s->interrupt_callback, NULL, s->protocol_whitelist, s->protocol_blacklist, NULL)) < 0) {
             err = ret;
