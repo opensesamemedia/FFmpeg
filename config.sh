@@ -35,10 +35,10 @@ if [[ $PROGRAMS == "1" ]]; then
   PROTOCOLS="--enable-protocol=file,srtp,tls,https"
   SHARED="--disable-shared --enable-static "
 else
-  PROGRAMS_CMD="--disable-programs"
+  PROGRAMS_CMD="--disable-programs --enable-gnutls"
   PREFIX="--prefix=/home/azajas/work/m2e/libav-rtsp/lib/ffmpeg"
   SHARED="--enable-shared --disable-static "
-  PROTOCOLS="--enable-protocol=srtp"
+  PROTOCOLS="--enable-protocol=srtp,tls,https"
 fi
 
 time bear -- ./configure $PROGRAMS_CMD --disable-everything --enable-libopus \
