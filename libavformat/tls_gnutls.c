@@ -171,7 +171,10 @@ static int tls_open(URLContext *h, const char *uri, int flags, AVDictionary **op
     }
 #if GNUTLS_VERSION_NUMBER >= 0x030020
     else
-        gnutls_certificate_set_x509_system_trust(p->cred);
+    {
+        ret = gnutls_certificate_set_x509_system_trust(p->cred);
+        av_log(h, AV_LOG_INFO, "Using system trust ret= %d \n", ret);
+    }
 #endif
     gnutls_certificate_set_verify_flags(p->cred, c->verify ?
                                         GNUTLS_VERIFY_ALLOW_X509_V1_CA_CRT : 0);
