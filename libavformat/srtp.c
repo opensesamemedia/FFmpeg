@@ -62,10 +62,34 @@ static void derive_key(struct AVAES *aes, const uint8_t *salt, int label,
     encrypt_counter(aes, input, out, outlen);
 }
 
+static void parse_roc_params(struct SRTPContext *s, const char* params) {
+  int roc = 0;
+  int seq = 0;
+  char *first_param_p, *second_param_p;
+  first_param_p = strchr(params, ':');
+  if (first_param_p != NULL) {
+    //skip colon
+    first_param_p++;
+    seq = atoi(first_param_p);
+    s->seq_initialized = 1;
+    s->seq_largest = seq;
+    //find second colon
+    second_param_p = strchr(first_param_p, ':');
+    if (second_param_p  != NULL) {
+      second_param_p++;
+      roc = atoi(second_param_p);
+      s->roc = roc;
+    }
+    av_log(NULL, AV_LOG_DEBUG, "ROC: %d SEQ: %d\n", roc, seq);
+  }
+}
+
 int ff_srtp_set_crypto(struct SRTPContext *s, const char *suite,
                        const char *params)
 {
     uint8_t buf[30];
+    uint8_t key_buf[40];
+    const uint8_t *key_buf_p = key_buf;
 
     ff_srtp_free(s);
 
@@ -84,7 +108,10 @@ int ff_srtp_set_crypto(struct SRTPContext *s, const char *suite,
                                      suite);
         return AVERROR(EINVAL);
     }
-    if (av_base64_decode(buf, params, sizeof(buf)) != sizeof(buf)) {
+
+    parse_roc_params(s, params);
+    memcpy(key_buf, params, sizeof(key_buf));
+    if (av_base64_decode(buf, key_buf_p, sizeof(buf)) != sizeof(buf)) {
         av_log(NULL, AV_LOG_WARNING, "Incorrect amount of SRTP params\n");
         return AVERROR(EINVAL);
     }
