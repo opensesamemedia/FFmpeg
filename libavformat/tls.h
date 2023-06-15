@@ -53,6 +53,7 @@ typedef struct TLSShared {
     {"verifyhost", "Verify against a specific hostname",  offsetof(pstruct, options_field . host),      AV_OPT_TYPE_STRING, .flags = TLS_OPTFL }, \
     {"http_proxy", "Set proxy to tunnel through",         offsetof(pstruct, options_field . http_proxy), AV_OPT_TYPE_STRING, .flags = TLS_OPTFL }
 
+int ff_tls_process_underlying(TLSShared *c, URLContext *parent, const char *uri, int *port);
 int ff_tls_open_underlying(TLSShared *c, URLContext *parent, const char *uri, AVDictionary **options);
 
 void ff_gnutls_init(void);

@@ -3566,6 +3566,7 @@ https_protocol_suggest="zlib"
 icecast_protocol_select="http_protocol"
 mmsh_protocol_select="http_protocol"
 mmst_protocol_select="network"
+nwf_conflict="openssl gnutls libtls mbedtls"
 rtmp_protocol_conflict="librtmp_protocol"
 rtmp_protocol_select="tcp_protocol"
 rtmp_protocol_suggest="zlib"
@@ -3587,7 +3588,7 @@ sctp_protocol_select="network"
 securetransport_conflict="openssl gnutls libtls mbedtls"
 srtp_protocol_select="rtp_protocol srtp"
 tcp_protocol_select="network"
-tls_protocol_deps_any="gnutls openssl schannel securetransport libtls mbedtls"
+tls_protocol_deps_any="gnutls nwf openssl schannel securetransport libtls mbedtls"
 tls_protocol_select="tcp_protocol"
 udp_protocol_select="network"
 udplite_protocol_select="network"
@@ -6776,8 +6777,11 @@ if enabled decklink; then
     esac
 fi
 
+enabled nwf &&
+    check_lib nwf "Network/Network.h" "nw_connection_create" "-Wl,-framework,CoreFoundation -Wl,-framework,Security -Wl,-weak_framework,Network" ||
+        disable nwf
+
 enabled securetransport &&
-    check_func SecIdentityCreate "-Wl,-framework,CoreFoundation -Wl,-framework,Security" &&
     check_lib securetransport "Security/SecureTransport.h Security/Security.h" "SSLCreateContext" "-Wl,-framework,CoreFoundation -Wl,-framework,Security" ||
         disable securetransport
 

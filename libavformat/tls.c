@@ -52,35 +52,18 @@ static void set_options(TLSShared *c, const char *uri)
 
     if (!c->key_file && av_find_info_tag(buf, sizeof(buf), "key", p))
         c->key_file = av_strdup(buf);
+
+    if (av_find_info_tag(buf, sizeof(buf), "listen", p))
+        c->listen = 1;
 }
 
-int ff_tls_open_underlying(TLSShared *c, URLContext *parent, const char *uri, AVDictionary **options)
+int ff_tls_process_underlying(TLSShared *c, URLContext *parent, const char *uri, int *port)
 {
-    int port;
-    const char *p;
-    char buf[200], opts[50] = "";
     struct addrinfo hints = { 0 }, *ai = NULL;
-    const char *proxy_path;
-    char *env_http_proxy, *env_no_proxy;
-    int use_proxy;
 
     set_options(c, uri);
 
-    if (c->listen)
-        snprintf(opts, sizeof(opts), "?listen=1");
-
-    av_url_split(NULL, 0, NULL, 0, c->underlying_host, sizeof(c->underlying_host), &port, NULL, 0, uri);
-
-    p = strchr(uri, '?');
-
-    if (!p) {
-        p = opts;
-    } else {
-        if (av_find_info_tag(opts, sizeof(opts), "listen", p))
-            c->listen = 1;
-    }
-
-    ff_url_join(buf, sizeof(buf), "tcp", NULL, c->underlying_host, port, "%s", p);
+    av_url_split(NULL, 0, NULL, 0, c->underlying_host, sizeof(c->underlying_host), port, NULL, 0, uri);
 
     hints.ai_flags = AI_NUMERICHOST;
     if (!getaddrinfo(c->underlying_host, NULL, &hints, &ai)) {
@@ -90,6 +73,33 @@ int ff_tls_open_underlying(TLSShared *c, URLContext *parent, const char *uri, AV
 
     if (!c->host && !(c->host = av_strdup(c->underlying_host)))
         return AVERROR(ENOMEM);
+
+      return 0;
+}
+
+int ff_tls_open_underlying(TLSShared *c, URLContext *parent, const char *uri, AVDictionary **options)
+{
+    int port;
+    const char *p;
+    char buf[200], opts[50] = "";
+    const char *proxy_path;
+    char *env_http_proxy, *env_no_proxy;
+    int use_proxy;
+    int ret;
+
+    if ((ret = ff_tls_process_underlying(c, parent, uri, &port)) < 0)
+        return ret;
+
+    if (c->listen)
+        snprintf(opts, sizeof(opts), "?listen=1");
+
+
+    p = strchr(uri, '?');
+
+    if (!p)
+        p = opts;
+
+    ff_url_join(buf, sizeof(buf), "tcp", NULL, c->underlying_host, port, "%s", p);
 
     env_http_proxy = getenv_utf8("http_proxy");
     proxy_path = c->http_proxy ? c->http_proxy : env_http_proxy;
