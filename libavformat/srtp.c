@@ -66,7 +66,7 @@ static void parse_roc_params(struct SRTPContext *s, const char* params) {
   int roc = 0;
   int seq = 0;
   char *first_param_p, *second_param_p;
-  first_param_p = strchr(params, ':');
+  first_param_p = strchr((char *)params, ':');
   if (first_param_p != NULL) {
     //skip colon
     first_param_p++;
@@ -88,8 +88,7 @@ int ff_srtp_set_crypto(struct SRTPContext *s, const char *suite,
                        const char *params)
 {
     uint8_t buf[30];
-    uint8_t key_buf[40];
-    const uint8_t *key_buf_p = key_buf;
+    char key_buf[64] = {0};
 
     ff_srtp_free(s);
 
@@ -110,8 +109,8 @@ int ff_srtp_set_crypto(struct SRTPContext *s, const char *suite,
     }
 
     parse_roc_params(s, params);
-    memcpy(key_buf, params, sizeof(key_buf));
-    if (av_base64_decode(buf, key_buf_p, sizeof(buf)) != sizeof(buf)) {
+    memcpy(key_buf, params, 40);
+    if (av_base64_decode(buf, key_buf, sizeof(buf)) != sizeof(buf)) {
         av_log(NULL, AV_LOG_WARNING, "Incorrect amount of SRTP params\n");
         return AVERROR(EINVAL);
     }
