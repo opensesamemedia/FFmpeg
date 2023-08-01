@@ -31,23 +31,21 @@ esac; done
 
 if [[ $PROGRAMS == "1" ]]; then
   PROGRAMS_CMD="--enable-ffplay --enable-sdl2 --enable-gnutls"
-  PREFIX="--prefix=/home/azajas/work/m2e/Aps/FFmpeg/out"
   PROTOCOLS="--enable-protocol=file,srtp,tls,https"
   SHARED="--disable-shared --enable-static "
 else
   PROGRAMS_CMD="--disable-programs --enable-gnutls"
-  PREFIX="--prefix=/home/azajas/work/m2e/libav-rtsp/lib/ffmpeg"
   SHARED="--enable-shared --disable-static "
   PROTOCOLS="--enable-protocol=srtp,tls,https"
 fi
 
 time bear -- ./configure $PROGRAMS_CMD --disable-everything --enable-libopus \
   ${SHARED} \
-  --disable-stripping \
-  --disable-optimizations --extra-cflags="-O0 -g -fno-omit-frame-pointer -fno-inline" \
-  --extra-ldflags="-g" \
-  --optflags="-O0" \
-  --enable-debug=3  \
+  # --disable-stripping \
+  # --disable-optimizations --extra-cflags="-O0 -g -fno-omit-frame-pointer -fno-inline" \
+  # --extra-ldflags="-g" \
+  # --optflags="-O0" \
+  # --enable-debug=3  \
   ${PREFIX} \
   ${PROTOCOLS} \
   ${PARSERS} \
