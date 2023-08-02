@@ -41,12 +41,6 @@ fi
 
 time bear -- ./configure $PROGRAMS_CMD --disable-everything --enable-libopus \
   ${SHARED} \
-  # --disable-stripping \
-  # --disable-optimizations --extra-cflags="-O0 -g -fno-omit-frame-pointer -fno-inline" \
-  # --extra-ldflags="-g" \
-  # --optflags="-O0" \
-  # --enable-debug=3  \
-  ${PREFIX} \
   ${PROTOCOLS} \
   ${PARSERS} \
   --disable-doc \
