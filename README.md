@@ -44,3 +44,16 @@ GPL. Please refer to the LICENSE file for detailed information.
 Patches should be submitted to the ffmpeg-devel mailing list using
 `git format-patch` or `git send-email`. Github pull requests should be
 avoided because they are not part of our review process and will be ignored.
+
+
+## SyncStage
+
+Modules configuration:
+```
+--disable-everything --enable-libopus \
+--enable-encoder=pcm_f32le,pcm_s16le,libopus,copy,opus,vorbis \
+--enable-decoder=pcm_f32le,pcm_s16le,libopus,copy,opus,vorbis \
+--enable-muxer=pcm_f32le,pcm_s16le,rtsp,rtp,ogg,opus \
+--enable-demuxer=pcm_f32le,pcm_s16le,rtsp,rtp,ogg,opus \
+--enable-filter=copy,volume,aformat,aresample,arnndn,channelmap,pan,amerge
+```
