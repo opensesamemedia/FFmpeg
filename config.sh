@@ -56,7 +56,7 @@ time bear -- ./configure $PROGRAMS_CMD --disable-everything --enable-libopus \
   --enable-decoder=pcm_f32le,pcm_s16le,libopus,copy,opus,vorbis \
   --enable-muxer=pcm_f32le,pcm_s16le,rtsp,rtp,ogg,opus \
   --enable-demuxer=pcm_f32le,pcm_s16le,rtsp,rtp,ogg,opus \
-  --enable-filter=copy,volume,aformat,aresample,arnndn
+  --enable-filter=copy,volume,aformat,aresample,arnndn,channelmap,pan,amerge
 
 
 tput bel
