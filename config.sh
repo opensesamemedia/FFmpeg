@@ -38,7 +38,7 @@ else
   PROGRAMS_CMD="--disable-programs --enable-gnutls"
   PREFIX="--prefix=/home/azajas/work/m2e/libav-rtsp/lib/ffmpeg"
   SHARED="--enable-shared --disable-static "
-  PROTOCOLS="--enable-protocol=srtp,tls,https"
+  PROTOCOLS="--enable-protocol=srtp,tls,https,file"
 fi
 
 time bear -- ./configure $PROGRAMS_CMD --disable-everything --enable-libopus \
