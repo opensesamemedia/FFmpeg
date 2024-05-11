@@ -936,6 +936,7 @@ retry:
         return ret;
     }
     rt->packets++;
+    RTSPStream *rtsp_st;
 
     if (!(rt->rtsp_flags & RTSP_FLAG_LISTEN)) {
         /* send dummy request to keep TCP connection alive */
@@ -945,6 +946,10 @@ retry:
                 (rt->server_type != RTSP_SERVER_REAL &&
                  rt->get_parameter_supported)) {
                 ff_rtsp_send_cmd_async(s, "GET_PARAMETER", rt->control_uri, NULL);
+                for (int i = 0; i < rt->nb_rtsp_streams; i++) {
+                  rtsp_st = rt->rtsp_streams[i];
+                  ff_rtp_send_punch_packets(rtsp_st->rtp_handle);
+                }
             } else {
                 ff_rtsp_send_cmd_async(s, "OPTIONS", rt->control_uri, NULL);
             }
