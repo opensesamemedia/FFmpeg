@@ -25,6 +25,7 @@
 #include <poll.h>
 #endif
 #include "mux.h"
+#include "demux.h"
 #include "network.h"
 #include "os_support.h"
 #include "rtsp.h"
@@ -290,4 +291,9 @@ const FFOutputFormat ff_rtsp_muxer = {
     .write_trailer     = rtsp_write_close,
     .p.flags           = AVFMT_NOFILE | AVFMT_GLOBALHEADER,
     .p.priv_class      = &rtsp_muxer_class,
+};
+
+const FFInputFormat ff_rtcp_demuxer = {
+    .p.name              = "rtcp",
+    .p.long_name         = NULL_IF_CONFIG_SMALL("RTCP input"),
 };
