@@ -222,7 +222,7 @@ static int libopus_decode(AVCodecContext *avc, AVFrame *frame,
         av_log(avc, AV_LOG_WARNING, "Recovered %d samples with FEC/PLC\n",
                    ret);
 
-        outptr += ret * avc->channels * av_get_bytes_per_sample(avc->sample_fmt);
+        outptr += ret * avc->ch_layout.nb_channels * av_get_bytes_per_sample(avc->sample_fmt);
         nb_samples_left -= ret;
         nb_samples += ret;
         if (pkt->pts != AV_NOPTS_VALUE) {
