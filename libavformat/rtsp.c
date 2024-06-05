@@ -96,6 +96,7 @@ const AVOption ff_rtsp_options[] = {
     { "prefer_tcp", "try RTP via TCP first, if available", 0, AV_OPT_TYPE_CONST, {.i64 = RTSP_FLAG_PREFER_TCP}, 0, 0, DEC|ENC, .unit = "rtsp_flags" },
     { "satip_raw", "export raw MPEG-TS stream instead of demuxing", 0, AV_OPT_TYPE_CONST, {.i64 = RTSP_FLAG_SATIP_RAW}, 0, 0, DEC, .unit = "rtsp_flags" },
     RTSP_MEDIATYPE_OPTS("allowed_media_types", "set media types to accept from the server"),
+    { "srtp", "transmit using srtp protocol", 0, AV_OPT_TYPE_CONST, {.i64 = RTSP_FLAG_TRANSMIT_SRTP}, 0, 0, ENC, "rtsp_flags" },
     { "min_port", "set minimum local UDP port", OFFSET(rtp_port_min), AV_OPT_TYPE_INT, {.i64 = RTSP_RTP_PORT_MIN}, 0, 65535, DEC|ENC },
     { "max_port", "set maximum local UDP port", OFFSET(rtp_port_max), AV_OPT_TYPE_INT, {.i64 = RTSP_RTP_PORT_MAX}, 0, 65535, DEC|ENC },
     { "listen_timeout", "set maximum timeout (in seconds) to wait for incoming connections (-1 is infinite, imply flag listen)", OFFSET(initial_timeout), AV_OPT_TYPE_INT, {.i64 = -1}, INT_MIN, INT_MAX, DEC },
@@ -103,6 +104,8 @@ const AVOption ff_rtsp_options[] = {
     { "headers", "set custom HTTP headers, can override built in default headers", OFFSET(headers), AV_OPT_TYPE_STRING, { .str = NULL }, 0, 0, DEC|ENC },
     COMMON_OPTS(),
     { "user_agent", "override User-Agent header", OFFSET(user_agent), AV_OPT_TYPE_STRING, {.str = LIBAVFORMAT_IDENT}, 0, 0, DEC },
+    { "srtp_out_suite", "", OFFSET(srtp_out_suite), AV_OPT_TYPE_STRING, { .str = NULL }, 0, 0, ENC},
+    { "srtp_out_params", "", OFFSET(srtp_out_params), AV_OPT_TYPE_STRING, { .str = NULL }, 0, 0, ENC},
     { NULL },
 };
 
@@ -1488,6 +1491,8 @@ int ff_rtsp_make_setup_request(AVFormatContext *s, const char *host, int port,
         trans_pref = "x-pn-tng";
     else if (rt->transport == RTSP_TRANSPORT_RAW)
         trans_pref = "RAW/RAW";
+    else if (rt->transport == RTSP_TRANSPORT_RTP && (rt->rtsp_flags & RTSP_FLAG_TRANSMIT_SRTP))
+        trans_pref = "RTP/SAVP";
     else
         trans_pref = "RTP/AVP";
 
@@ -1542,9 +1547,16 @@ int ff_rtsp_make_setup_request(AVFormatContext *s, const char *host, int port,
             /* first try in specified port range */
             while (j + 1 <= rt->rtp_port_max) {
                 AVDictionary *opts = map_to_opts(rt);
+                if (rt->rtsp_flags & RTSP_FLAG_TRANSMIT_SRTP) {
+                  av_dict_set(&opts, "srtp_out_suite", rt->srtp_out_suite, 0);
+                  av_dict_set(&opts, "srtp_out_params", rt->srtp_out_params, 0);
 
-                ff_url_join(buf, sizeof(buf), "rtp", NULL, host, -1,
-                            "?localport=%d", j);
+                    ff_url_join(buf, sizeof(buf), "srtp", NULL, host, -1,
+                                "?localport=%d", j);
+                } else {
+                  ff_url_join(buf, sizeof(buf), "rtp", NULL, host, -1,
+                              "?localport=%d", j);
+                }
                 /* we will use two ports per rtp stream (rtp and rtcp) */
                 j += 2;
                 err = ffurl_open_whitelist(&rtsp_st->rtp_handle, buf, AVIO_FLAG_READ_WRITE,
@@ -1673,12 +1685,22 @@ int ff_rtsp_make_setup_request(AVFormatContext *s, const char *host, int port,
             /* Use source address if specified */
             if (reply->transports[0].source[0])
                 peer = reply->transports[0].source;
-            ff_url_join(url, sizeof(url), "rtp", NULL, peer,
-                        reply->transports[0].server_port_min, "%s", options);
-            if (!(rt->server_type == RTSP_SERVER_WMS && i > 1) &&
-                ff_rtp_set_remote_url(rtsp_st->rtp_handle, url) < 0) {
-                err = AVERROR_INVALIDDATA;
-                goto fail;
+            if (rt->rtsp_flags & RTSP_FLAG_TRANSMIT_SRTP) {
+              ff_url_join(url, sizeof(url), "srtp", NULL, peer,
+                          reply->transports[0].server_port_min, "%s", options);
+              if (!(rt->server_type == RTSP_SERVER_WMS && i > 1) &&
+                  ff_rtp_set_remote_url_srtp(rtsp_st->rtp_handle, url) < 0) {
+                  err = AVERROR_INVALIDDATA;
+                  goto fail;
+              }
+            } else {
+              ff_url_join(url, sizeof(url), "rtp", NULL, peer,
+                          reply->transports[0].server_port_min, "%s", options);
+              if (!(rt->server_type == RTSP_SERVER_WMS && i > 1) &&
+                  ff_rtp_set_remote_url(rtsp_st->rtp_handle, url) < 0) {
+                  err = AVERROR_INVALIDDATA;
+                  goto fail;
+              }
             }
             break;
         }

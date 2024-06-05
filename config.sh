@@ -32,7 +32,7 @@ esac; done
 if [[ $PROGRAMS == "1" ]]; then
   PROGRAMS_CMD="--enable-ffplay --enable-sdl2"
   PREFIX="--prefix=/home/azajas/work/m2e/Aps/FFmpeg/out"
-  PROTOCOLS="--enable-protocol=file"
+  PROTOCOLS="--enable-protocol=file,srtp"
   SHARED="--disable-shared --enable-static "
 else
   PROGRAMS_CMD="--disable-programs"
