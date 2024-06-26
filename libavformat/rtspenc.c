@@ -291,3 +291,8 @@ const FFOutputFormat ff_rtsp_muxer = {
     .p.flags           = AVFMT_NOFILE | AVFMT_GLOBALHEADER,
     .p.priv_class      = &rtsp_muxer_class,
 };
+
+const AVInputFormat ff_rtcp_demuxer = {
+    .name              = "rtcp",
+    .long_name         = NULL_IF_CONFIG_SMALL("RTCP input"),
+};

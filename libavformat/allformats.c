@@ -396,6 +396,7 @@ extern const FFOutputFormat ff_rtp_muxer;
 extern const FFOutputFormat ff_rtp_mpegts_muxer;
 extern const AVInputFormat  ff_rtsp_demuxer;
 extern const FFOutputFormat ff_rtsp_muxer;
+extern const AVInputFormat  ff_rtcp_demuxer;
 extern const AVInputFormat  ff_s337m_demuxer;
 extern const AVInputFormat  ff_sami_demuxer;
 extern const AVInputFormat  ff_sap_demuxer;
