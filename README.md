@@ -57,3 +57,29 @@ Modules configuration:
 --enable-demuxer=pcm_f32le,pcm_s16le,rtsp,rtp,ogg,opus \
 --enable-filter=copy,volume,aformat,aresample,arnndn,channelmap,pan,amerge
 ```
+
+## Building for Windows
+
+1. Download and install MSYS2 [LINK]("https://www.msys2.org/")
+1. __Use MinGW toolchain!__ `"C:\msys64\mingw64.exe"`
+1. Clone FFmpeg repo, change to latest `SyncStage` branch i.e. `SyncStage-n6`
+1. Install dependencies:
+    ```
+    pacman -S git
+    pacman -S gcc make autotools cmake
+    pacman -S zlib
+    pacman -S zlib-devel
+    pacman -S mingw-w64-x86_64-toolchain
+    pacman -S nasm
+    pacman -S pkg-config
+    pacman -S mingw-w64-x86_64-gnutls mingw-w64-x86_64-opus
+    ```
+1. Configure 
+    ```
+    ./configure --prefix=ffmpeg/ --arch=x86_64 --enable-libopus --enable-gnutls --enable-shared --pkg-config-flags="--static" --disable-everything --disable-stripping --disable-optimizations --disable-cuvid --disable-hwaccels --disable-cuda-llvm --disable-ffnvcodec --extra-cflags=-O0 --enable-protocol=srtp,tls,https --enable-encoder=pcm_f32le,pcm_s16le,libopus,copy,opus,vorbis --enable-decoder=pcm_f32le,pcm_s16le,libopus,copy,opus,vorbis --enable-muxer=pcm_f32le,pcm_s16le,rtsp,rtp,ogg,opus --enable-demuxer=pcm_f32le,pcm_s16le,rtsp,rtp,ogg,opus --enable-filter=copy,volume,aformat,aresample,arnndn,channelmap,pan,amerge
+    ```
+1. Build
+    ```
+    make -j 6 install
+    ```
+1. The outcome will be located in the `C:\msys64\home\<user>\<git ffmpeg work path>\ffmpeg` directory.
